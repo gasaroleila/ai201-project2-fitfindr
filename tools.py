@@ -151,8 +151,8 @@ def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
         prompt = (
             f"A user just found this secondhand item: {item_summary}.\n\n"
             f"Their current wardrobe:\n{wardrobe_lines}\n\n"
-            f"Suggest 1–2 complete outfits that pair the new item with specific named pieces "
-            f"from their wardrobe. Be specific about which wardrobe items to use and why they work together."
+            f"Suggest 1 complete outfit pairing the new item with pieces from their wardrobe. "
+            f"Reply in exactly 2 short sentences: the first names the pieces, the second explains the vibe. No filler words."
         )
 
     response = client.chat.completions.create(

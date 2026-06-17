@@ -18,6 +18,8 @@ Usage (once implemented):
     print(result["error"])   # None on success
 """
 
+import re
+
 from tools import search_listings, suggest_outfit, create_fit_card
 
 
@@ -92,9 +94,44 @@ def run_agent(query: str, wardrobe: dict) -> dict:
     Before writing code, complete the Planning Loop and State Management sections
     of planning.md — your implementation should match what you described there.
     """
-    # TODO: implement the planning loop
+    # Step 1: initialize session
     session = _new_session(query, wardrobe)
-    session["error"] = "Planning loop not yet implemented."
+
+    # Step 2: parse query with regex — extract size, max_price, then use the
+    # remainder as the description keyword string
+    text = query
+
+    size_match = re.search(r'\bsize\s+([A-Za-z0-9/]+)', text, re.IGNORECASE)
+    size = size_match.group(1).upper() if size_match else None
+    if size_match:
+        text = text[:size_match.start()] + text[size_match.end():]
+
+    price_match = re.search(r'(?:under|less than|below|max|budget of?)\s+\$?(\d+(?:\.\d+)?)', text, re.IGNORECASE)
+    max_price = float(price_match.group(1)) if price_match else None
+    if price_match:
+        text = text[:price_match.start()] + text[price_match.end():]
+
+    description = re.sub(r'[^\w\s]', ' ', text).strip()
+
+    session["parsed"] = {"description": description, "size": size, "max_price": max_price}
+
+    # Step 3: search listings — return early if nothing matches
+    session["search_results"] = search_listings(description, size=size, max_price=max_price)
+    if not session["search_results"]:
+        session["error"] = "No matching items found! Try other styles, a different size, or a higher budget."
+        session["fit_card"] = session["error"]
+        return session
+
+    # Step 4: pick the top result
+    session["selected_item"] = session["search_results"][0]
+
+    # Step 5: suggest an outfit
+    session["outfit_suggestion"] = suggest_outfit(session["selected_item"], wardrobe)
+
+    # Step 6: generate fit card
+    session["fit_card"] = create_fit_card(session["outfit_suggestion"], session["selected_item"])
+
+    # Step 7: return completed session
     return session
 
 
@@ -103,21 +140,10 @@ def run_agent(query: str, wardrobe: dict) -> dict:
 if __name__ == "__main__":
     from utils.data_loader import get_example_wardrobe, get_empty_wardrobe
 
-    print("=== Happy path: graphic tee ===\n")
     session = run_agent(
-        query="looking for a vintage graphic tee under $30",
+        query="designer ballgown of size XXS under $5",
         wardrobe=get_example_wardrobe(),
     )
-    if session["error"]:
-        print(f"Error: {session['error']}")
-    else:
-        print(f"Found: {session['selected_item']['title']}")
-        print(f"\nOutfit: {session['outfit_suggestion']}")
-        print(f"\nFit card: {session['fit_card']}")
 
-    print("\n\n=== No-results path ===\n")
-    session2 = run_agent(
-        query="designer ballgown size XXS under $5",
-        wardrobe=get_example_wardrobe(),
-    )
-    print(f"Error message: {session2['error']}")
+    print("final output from agent", session['fit_card'])
+    
