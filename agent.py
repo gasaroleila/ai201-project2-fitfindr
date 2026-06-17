@@ -133,17 +133,3 @@ def run_agent(query: str, wardrobe: dict) -> dict:
 
     # Step 7: return completed session
     return session
-
-
-# ── CLI test ──────────────────────────────────────────────────────────────────
-
-if __name__ == "__main__":
-    from utils.data_loader import get_example_wardrobe, get_empty_wardrobe
-
-    session = run_agent(
-        query="designer ballgown of size XXS under $5",
-        wardrobe=get_example_wardrobe(),
-    )
-
-    print("final output from agent", session['fit_card'])
-    
